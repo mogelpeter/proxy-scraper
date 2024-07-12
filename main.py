@@ -17,29 +17,13 @@ import psutil
 # Ensure required modules are installed
 required_modules = [
     'requests', 'colorama', 'pystyle', 'datetime', 'aiosocks', 
-    'asyncio', 'aiohttp-socks', 'socks', 'tls_client', 'psutil', 'pywin32'
+    'asyncio', 'aiohttp-socks', 'socks', 'tls_client', 'psutil'
 ]
 for module in required_modules:
     try:
         __import__(module)
     except ImportError:
         os.system(f"pip install {module}")
-
-# Run pywin32_postinstall to complete the installation
-try:
-    import pywin32_postinstall
-    pywin32_postinstall.main()
-except Exception as e:
-    print(f"Error running pywin32_postinstall: {e}")
-
-# Retry importing win32api, win32con, win32gui after ensuring installation
-try:
-    import win32api
-    import win32con
-    import win32gui
-except ImportError:
-    print("Failed to import win32 modules. Ensure pywin32 is properly installed.")
-    sys.exit(1)
 
 from aiohttp_socks import ProxyConnector, ProxyType
 
@@ -49,8 +33,11 @@ with open("config.json", "r") as config_file:
 usage_level = config.get("usage_level", 3)
 
 # Map usage levels to thread counts
-usage_to_threads = {i: 100 + 50 * (i - 1) for i in range(1, 11)}
-allowed_threads = usage_to_threads.get(usage_level, 200)
+# Assuming 200MB base usage and 1800MB additional usage spread across 10 levels
+base_threads = 10
+max_threads = 2000  # Adjust this based on testing and requirements
+usage_to_threads = {i: base_threads + ((max_threads - base_threads) // 10) * i for i in range(1, 11)}
+allowed_threads = usage_to_threads.get(usage_level, base_threads)
 
 https_scraped = 0
 socks5_scraped = 0
@@ -71,13 +58,6 @@ reset = Fore.RESET
 pink = Fore.LIGHTGREEN_EX + Fore.LIGHTMAGENTA_EX
 dark_green = Fore.GREEN + Style.BRIGHT
 output_lock = threading.Lock()
-
-def set_console_icon():
-    if os.name == 'nt':
-        icon_path = os.path.join(os.getenv('systemroot'), 'system32', 'pifmgr.dll')
-        icon_index = 2  # The index for the MSDOS icon in pifmgr.dll
-        hicon = win32gui.ExtractIcon(win32api.GetModuleHandle(None), icon_path, icon_index)
-        ctypes.windll.kernel32.SetConsoleIcon(hicon)
 
 def get_time_rn():
     date = dt.now()
@@ -110,7 +90,8 @@ def ui():
                       |___/                       |_|              
 """
     Write.Print(center_text(ascii_art, width), Colors.red_to_blue, interval=0.000)
-    print("\n[ This tool is a scraper & checker for HTTP/s and SOCKS5 proxies. ]\n")
+    centered_message = center_text("[ This tool is a scraper & checker for HTTP/s and SOCKS5 proxies. ]", width)
+    print(f"\n{centered_message}\n")
     time.sleep(3)
 
 def scrape_proxy_links(link, proxy_type):
@@ -225,9 +206,16 @@ def signal_handler(sig, frame):
     print("\nProcess interrupted by user.")
     sys.exit(0)
 
+def set_process_priority():
+    p = psutil.Process(os.getpid())
+    try:
+        p.nice(psutil.HIGH_PRIORITY_CLASS)
+    except AttributeError:
+        p.nice(-20)
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    set_console_icon()
+    set_process_priority()
     ui()
 
     scrape_proxies(http_links, "https", "http_proxies.txt")
