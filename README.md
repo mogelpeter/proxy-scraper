@@ -40,3 +40,7 @@ python main.py
 
 - Python 3.6+
 - Packages automatically installed on start
+
+## Important Information!
+
+For educational & research purposes only!
