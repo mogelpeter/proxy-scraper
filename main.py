@@ -11,6 +11,8 @@ from datetime import datetime as dt
 import ctypes
 from proxy_links import http_links, socks5_links
 import json
+import signal
+import psutil
 
 try:
     import requests, colorama, pystyle, datetime, aiosocks, asyncio, aiohttp_socks, socks, socket, tls_client
@@ -33,15 +35,9 @@ with open("config.json", "r") as config_file:
 usage_level = config.get("usage_level", 3)
 
 # Map usage levels to thread counts
-usage_to_threads = {
-    1: 50,
-    2: 100,
-    3: 150,
-    4: 200,
-    5: 250
-}
+usage_to_threads = {i: 100 + 50 * (i - 1) for i in range(1, 11)}
 
-allowed_threads = usage_to_threads.get(usage_level, 100)
+allowed_threads = usage_to_threads.get(usage_level, 200)
 
 https_scraped = 0
 socks5_scraped = 0
@@ -80,12 +76,18 @@ def update_title(title):
 
 def update_title_scraped():
     global https_scraped, socks5_scraped
-    title = f'[ Scraper ] HTTP/s Scraped : {https_scraped} ~ Socks5 Scraped : {socks5_scraped}'
+    process = psutil.Process(os.getpid())
+    cpu_usage = psutil.cpu_percent()
+    ram_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+    title = f'[ Scraper ] HTTP/s Scraped : {https_scraped} ~ Socks5 Scraped : {socks5_scraped} ~ CPU {cpu_usage}% ~ RAM {ram_usage:.2f}MB'
     update_title(title)
 
 def update_title_checked():
     global http_checked, socks5_checked
-    title = f'[ Scraper ] HTTP/s Valid : {http_checked} ~ Socks5 Valid : {socks5_checked}'
+    process = psutil.Process(os.getpid())
+    cpu_usage = psutil.cpu_percent()
+    ram_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+    title = f'[ Scraper ] HTTP/s valid : {http_checked} ~ Socks5 valid : {socks5_checked} ~ CPU {cpu_usage}% ~ RAM {ram_usage:.2f}MB'
     update_title(title)
 
 def center_text(text, width):
@@ -98,17 +100,12 @@ def ui():
     System.Clear()
     width = os.get_terminal_size().columns
     ascii_art = """
-8888888b.                                          .d8888b.                                                     
-888   Y88b                                        d88P  Y88b                                                    
-888    888                                        Y88b.                                                         
-888   d88P 888d888 .d88b.  888  888 888  888       "Y888b.    .d8888b 888d888 8888b.  88888b.   .d88b.  888d888 
-8888888P"  888P"  d88""88b `Y8bd8P' 888  888          "Y88b. d88P"    888P"      "88b 888 "88b d8P  Y8b 888P"   
-888        888    888  888   X88K   888  888            "888 888      888    .d888888 888  888 88888888 888     
-888        888    Y88..88P .d8""8b. Y88b 888      Y88b  d88P Y88b.    888    888  888 888 d88P Y8b.     888     
-888        888     "Y88P"  888  888  "Y88888       "Y8888P"   "Y8888P 888    "Y888888 88888P"   "Y8888  888     
-                                         888                                          888                       
-                                    Y8b d88P                                          888                       
-                                     "Y88P"                                           888                       
+  ____                        ____                                 
+ |  _ \ _ __ _____  ___   _  / ___|  ___ _ __ __ _ _ __   ___ _ __ 
+ | |_) | '__/ _ \ \/ / | | | \___ \ / __| '__/ _` | '_ \ / _ \ '__|
+ |  __/| | | (_) >  <| |_| |  ___) | (__| | | (_| | |_) |  __/ |   
+ |_|   |_|  \___/_/\_\\__, | |____/ \___|_|  \__,_| .__/ \___|_|   
+                      |___/                       |_|              
 """
     Write.Print(center_text(ascii_art, width), Colors.red_to_blue, interval=0.000)
     time.sleep(3)
@@ -135,10 +132,14 @@ def scrape_proxy_links(link, proxy_type):
                 update_title_scraped()
                 return proxies
         except (SSLError, ReadTimeout) as ssl_err:
-            print(f"[ {pink}{get_time_rn()}{reset} ] | ( {red}SSL/Timeout ERROR{reset} ) Failed to scrape {link}: {ssl_err}")
+            with output_lock:
+                time_rn = get_time_rn()
+                print(f"[ {pink}{time_rn}{reset} ] | ( {red}ERROR{reset} ) Failed to scrape {link}: {ssl_err}")
             break  # Skip retries for SSL and timeout errors
         except RequestException as e:
-            print(f"[ {pink}{get_time_rn()}{reset} ] | ( {red}ERROR{reset} ) Failed to scrape {link}: {e}")
+            with output_lock:
+                time_rn = get_time_rn()
+                print(f"[ {pink}{time_rn}{reset} ] | ( {red}ERROR{reset} ) Failed to scrape {link}: {e}")
             time.sleep(2)  # Wait before retrying
     return []
 
@@ -248,9 +249,15 @@ if os.path.exists("scraped/http_proxies.txt"):
 if os.path.exists("scraped/socks5_proxies.txt"):
     os.remove("scraped/socks5_proxies.txt")
 
+def signal_handler(sig, frame):
+    print("\nProcess interrupted by user.")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nProcess interrupted by user.")
+        signal_handler(signal.SIGINT, None)
