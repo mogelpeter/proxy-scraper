@@ -1,3 +1,4 @@
+
 requests
 colorama
 pystyle
@@ -6,4 +7,6 @@ aiosocks
 asyncio
 aiohttp-socks
 socks
+socket
 tls_client
+psutil
