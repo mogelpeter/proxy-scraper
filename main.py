@@ -206,8 +206,8 @@ def check_all(proxy_type, pathTXT):
 def LetsCheckIt(proxy_types):
     threadsCrack = []
     for proxy_type in proxy_types:
-        if os.path.exists(f"{proxy_type}_proxies.txt"):
-            t = threading.Thread(target=check_all, args=(proxy_type, f"{proxy_type}_proxies.txt"))
+        if os.path.exists(f"scraped/{proxy_type}_proxies.txt"):
+            t = threading.Thread(target=check_all, args=(proxy_type, f"scraped/{proxy_type}_proxies.txt"))
             t.start()
             threadsCrack.append(t)
     for t in threadsCrack:
@@ -216,8 +216,11 @@ def LetsCheckIt(proxy_types):
 proxy_types = ["http", "socks5"]
 LetsCheckIt(proxy_types)
 
-os.remove("http_proxies.txt")
-os.remove("socks5_proxies.txt")
+# Check if the file exists before attempting to remove it
+if os.path.exists("scraped/http_proxies.txt"):
+    os.remove("scraped/http_proxies.txt")
+if os.path.exists("scraped/socks5_proxies.txt"):
+    os.remove("scraped/socks5_proxies.txt")
 
 if __name__ == "__main__":
     try:
