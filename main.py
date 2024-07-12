@@ -60,6 +60,14 @@ pink = Fore.LIGHTGREEN_EX + Fore.LIGHTMAGENTA_EX
 dark_green = Fore.GREEN + Style.BRIGHT
 output_lock = threading.Lock()
 
+def set_console_icon():
+    if os.name == 'nt':
+        icon_path = os.path.join(os.getenv('systemroot'), 'system32', 'pifmgr.dll')
+        icon_index = 0x0000002
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('myappid')
+        ctypes.windll.user32.LoadIconW(0, ctypes.windll.kernel32.MAKEINTRESOURCEW(icon_path, icon_index))
+        ctypes.windll.kernel32.SetConsoleIcon(ctypes.windll.user32.LoadImageW(0, icon_path, 1, 0, 0, icon_index))
+
 def get_time_rn():
     date = dt.now()
     hour = date.hour
@@ -191,7 +199,7 @@ def check_proxy_http(proxy):
         if r.status_code == 200:
             with output_lock:
                 time_rn = get_time_rn()
-                print(f"[ {pink}{time_rn}{reset} ] | ( {green}VALID{reset} ) {pretty}HTTP/S --> ", end='')
+                print(f"[ {pink}{time_rn}{reset} ] | ( {green}valid{reset} ) {pretty}HTTP/S --> ", end='')
                 sys.stdout.flush()
                 Write.Print(proxy + "\n", Colors.cyan_to_blue, interval=0.000)
             valid_http.append(proxy)
@@ -212,7 +220,7 @@ def checker_proxy_socks5(proxy):
         update_title_checked()
         with output_lock:
             time_rn = get_time_rn()
-            print(f"[ {pink}{time_rn}{reset} ] | ( {green}VALID{reset} ) {pretty}SOCKS5 --> ", end='')
+            print(f"[ {pink}{time_rn}{reset} ] | ( {green}valid{reset} ) {pretty}SOCKS5 --> ", end='')
             sys.stdout.flush()
             Write.Print(proxy + "\n", Colors.cyan_to_blue, interval=0.000)
         with open("results/socks5.txt", "a+") as f:
@@ -256,6 +264,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == "__main__":
+    set_console_icon()
     try:
         while True:
             time.sleep(1)
