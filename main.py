@@ -10,6 +10,7 @@ from colorama import Fore, Style
 from datetime import datetime as dt
 import ctypes
 from proxy_links import http_links, socks5_links
+import json
 
 try:
     import requests, colorama, pystyle, datetime, aiosocks, asyncio, aiohttp_socks, socks, socket, tls_client
@@ -25,6 +26,11 @@ except ModuleNotFoundError:
     os.system("pip install tls_client")
 
 from aiohttp_socks import ProxyConnector, ProxyType
+
+# Load configuration
+with open("config.json", "r") as config_file:
+    config = json.load(config_file)
+allowed_threads = config.get("allowed_threads", 100)
 
 https_scraped = 0
 socks5_scraped = 0
@@ -71,10 +77,16 @@ def update_title_checked():
     title = f'[ Scraper ] HTTP/s Valid : {http_checked} ~ Socks5 Valid : {socks5_checked}'
     update_title(title)
 
+def center_text(text, width):
+    lines = text.split('\n')
+    centered_lines = [line.center(width) for line in lines]
+    return '\n'.join(centered_lines)
+
 def ui():
     update_title("[ Scraper ]")
     System.Clear()
-    Write.Print(f"""
+    width = os.get_terminal_size().columns
+    ascii_art = """
  ▄▄▄·▄▄▄        ▐▄• ▄  ▄· ▄▌    .▄▄ ·  ▄▄· ▄▄▄   ▄▄▄·  ▄▄▄·▄▄▄ .▄▄▄  
 ▐█ ▄█▀▄ █·▪      █▌█▌▪▐█▪██▌    ▐█ ▀. ▐█ ▌▪▀▄ █·▐█ ▀█ ▐█ ▄█▀▄.▀·▀▄ █·
  ██▀·▐▀▀▄  ▄█▀▄  ·██· ▐█▌▐█▪    ▄▀▀▀█▄██ ▄▄▐▀▀▄ ▄█▀▀█  ██▀·▐▀▀▪▄▐▀▀▄ 
@@ -83,7 +95,8 @@ def ui():
                                                                                   
 \t\t[ This tool is a scraper & checker for HTTP/s and SOCKS5 proxies. ]
 \t\t\t\t\t[ The Best Ever Not Gonna Lie ]                                                                           
-""", Colors.red_to_blue, interval=0.000)
+"""
+    Write.Print(center_text(ascii_art, width), Colors.red_to_blue, interval=0.000)
     time.sleep(3)
 
 ui()
@@ -117,8 +130,7 @@ def scrape_proxy_links(link, proxy_type):
 
 def scrape_proxies(proxy_list, proxy_type, file_name):
     proxies = []
-    num_threads = 100
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
         results = executor.map(lambda link: scrape_proxy_links(link, proxy_type), proxy_list)
         for result in results:
             proxies.extend(result)
@@ -197,7 +209,7 @@ def check_all(proxy_type, pathTXT):
     with open(pathTXT, "r") as f:
         proxies = f.read().splitlines()
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=200) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
         if proxy_type.startswith("http") or proxy_type.startswith("https"):
             executor.map(check_proxy_http, proxies)
         if proxy_type.startswith("socks5"):
