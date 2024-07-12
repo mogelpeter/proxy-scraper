@@ -8,21 +8,6 @@
 - **Checking Proxies**: Validate the scraped proxies to ensure they are working.
 - **System Monitoring**: Display CPU and RAM usage of the script in the console title.
 
-## Usage Levels
-
-| Level | Threads |
-|-------|---------|
-| 1     | 100     |
-| 2     | 150     |
-| 3     | 200     |
-| 4     | 250     |
-| 5     | 300     |
-| 6     | 350     |
-| 7     | 400     |
-| 8     | 450     |
-| 9     | 500     |
-| 10    | 550     |
-
 ## Installation
 
 1. Clone the repository or download the .zip file.
