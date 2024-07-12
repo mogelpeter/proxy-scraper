@@ -36,6 +36,5 @@ socks5_links = [
     "https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/master/socks5.txt",
     "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
     "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/socks5.txt",
-    "https://spys.me/socks.txt",
     "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt"
 ]
