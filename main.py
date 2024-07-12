@@ -13,11 +13,12 @@ from proxy_links import http_links, socks5_links
 import json
 import signal
 import psutil
+import socket
+import socks
 
 # Ensure required modules are installed
 required_modules = [
-    'requests', 'colorama', 'pystyle', 'datetime', 'aiosocks', 
-    'asyncio', 'aiohttp-socks', 'socks', 'tls_client', 'psutil'
+    'requests', 'colorama', 'pystyle', 'datetime', 'socks', 'psutil'
 ]
 for module in required_modules:
     try:
@@ -25,19 +26,18 @@ for module in required_modules:
     except ImportError:
         os.system(f"pip install {module}")
 
-from aiohttp_socks import ProxyConnector, ProxyType
-
 # Load configuration
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
-usage_level = config.get("usage_level", 3)
+usage_level = config.get("usage_level", 2)  # Default to 2 (mid system usage allowance)
 
 # Map usage levels to thread counts
-# Assuming 200MB base usage and 1800MB additional usage spread across 10 levels
-base_threads = 10
-max_threads = 2000  # Adjust this based on testing and requirements
-usage_to_threads = {i: base_threads + ((max_threads - base_threads) // 10) * i for i in range(1, 11)}
-allowed_threads = usage_to_threads.get(usage_level, base_threads)
+thread_levels = {
+    1: 500,   # Low system usage allowance
+    2: 1000,  # Mid system usage allowance
+    3: 1500   # High system usage allowance
+}
+allowed_threads = thread_levels.get(usage_level, 1000)
 
 https_scraped = 0
 socks5_scraped = 0
@@ -63,11 +63,19 @@ def get_time_rn():
     date = dt.now()
     return date.strftime("%H:%M:%S")
 
-def update_title():
+def get_usage_level_str(level):
+    return {1: 'Low', 2: 'Mid', 3: 'High'}.get(level, 'Mid')
+
+def update_title(http_selected, socks5_selected, usage_level):
     process = psutil.Process(os.getpid())
     cpu_usage = psutil.cpu_percent()
     ram_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-    title = f'[ Scraper ] HTTP/s valid : {http_checked} ~ Socks5 valid : {socks5_checked} ~ CPU {cpu_usage}% ~ RAM {ram_usage:.2f}MB'
+    title = f'[ Scraper - Level: {get_usage_level_str(usage_level)} ]'
+    if http_selected:
+        title += f' HTTP/s valid : {http_checked}'
+    if socks5_selected:
+        title += f' ~ Socks5 valid : {socks5_checked}'
+    title += f' ~ CPU {cpu_usage}% ~ RAM {ram_usage:.2f}MB'
     if os.name == 'nt':
         ctypes.windll.kernel32.SetConsoleTitleW(title)
     else:
@@ -78,7 +86,6 @@ def center_text(text, width):
     return '\n'.join([line.center(width) for line in lines])
 
 def ui():
-    update_title()
     System.Clear()
     width = os.get_terminal_size().columns
     ascii_art = """
@@ -92,7 +99,7 @@ def ui():
     Write.Print(center_text(ascii_art, width), Colors.red_to_blue, interval=0.000)
     centered_message = center_text("[ This tool is a scraper & checker for HTTP/s and SOCKS5 proxies. ]", width)
     print(f"\n{centered_message}\n")
-    time.sleep(3)
+    time.sleep(1)
 
 def scrape_proxy_links(link, proxy_type):
     global https_scraped, socks5_scraped
@@ -111,7 +118,7 @@ def scrape_proxy_links(link, proxy_type):
                     https_scraped += len(proxies)
                 elif proxy_type == "socks5":
                     socks5_scraped += len(proxies)
-                update_title()
+                update_title(http_selected, socks5_selected, usage_level)
                 return proxies
         except (SSLError, ReadTimeout) as ssl_err:
             with output_lock:
@@ -139,6 +146,7 @@ def scrape_proxies(proxy_list, proxy_type, file_name):
         for proxy in proxies:
             if ":" in proxy and not any(c.isalpha() for c in proxy):
                 file.write(proxy + '\n')
+    return proxies
 
 def check_proxy_http(proxy):
     global http_checked
@@ -156,51 +164,42 @@ def check_proxy_http(proxy):
                 sys.stdout.flush()
                 Write.Print(proxy + "\n", Colors.cyan_to_blue, interval=0.000)
             with output_lock:
-                valid_http.append(proxy)
                 http_checked += 1
-                update_title()
+                update_title(http_selected, socks5_selected, usage_level)
             with open(f"results/http.txt", "a+") as f:
                 f.write(proxy + "\n")
     except requests.exceptions.RequestException:
         pass
 
-def checker_proxy_socks5(proxy):
+def check_proxy_socks5(proxy):
     global socks5_checked
     try:
         socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, proxy.split(':')[0], int(proxy.split(':')[1]))
         socket.socket = socks.socksocket
-        socket.create_connection(("www.google.com", 443), timeout=5)
-        with output_lock:
-            socks5_checked += 1
-            update_title()
-            time_rn = get_time_rn()
-            print(f"[ {pink}{time_rn}{reset} ] | ( {green}VALID{reset} ) {pretty}SOCKS5 --> ", end='')
-            sys.stdout.flush()
-            Write.Print(proxy + "\n", Colors.cyan_to_blue, interval=0.000)
-        with open("results/socks5.txt", "a+") as f:
-            f.write(proxy + "\n")
+        s = socket.socket()
+        s.connect(("www.google.com", 80))
+        s.sendall(b"GET / HTTP/1.1\r\nHost: www.google.com\r\n\r\n")
+        response = s.recv(4096)
+        if b"200 OK" in response:
+            with output_lock:
+                socks5_checked += 1
+                update_title(http_selected, socks5_selected, usage_level)
+                time_rn = get_time_rn()
+                print(f"[ {pink}{time_rn}{reset} ] | ( {green}VALID{reset} ) {pretty}SOCKS5 --> ", end='')
+                sys.stdout.flush()
+                Write.Print(proxy + "\n", Colors.cyan_to_blue, interval=0.000)
+            with open("results/socks5.txt", "a+") as f:
+                f.write(proxy + "\n")
     except (socks.ProxyConnectionError, socket.timeout, OSError):
         pass
 
-def check_all(proxy_type, pathTXT):
-    with open(pathTXT, "r") as f:
-        proxies = f.read().splitlines()
-
+def check_http_proxies(proxies):
     with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
-        if proxy_type.startswith("http") or proxy_type.startswith("https"):
-            executor.map(check_proxy_http, proxies)
-        if proxy_type.startswith("socks5"):
-            executor.map(checker_proxy_socks5, proxies)
+        executor.map(check_proxy_http, proxies)
 
-def lets_check_it(proxy_types):
-    threadsCrack = []
-    for proxy_type in proxy_types:
-        if os.path.exists(f"scraped/{proxy_type}_proxies.txt"):
-            t = threading.Thread(target=check_all, args=(proxy_type, f"scraped/{proxy_type}_proxies.txt"))
-            t.start()
-            threadsCrack.append(t)
-    for t in threadsCrack:
-        t.join()
+def check_socks5_proxies(proxies):
+    with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
+        executor.map(check_proxy_socks5, proxies)
 
 def signal_handler(sig, frame):
     print("\nProcess interrupted by user.")
@@ -218,27 +217,38 @@ if __name__ == "__main__":
     set_process_priority()
     ui()
 
-    scrape_proxies(http_links, "https", "http_proxies.txt")
-    scrape_proxies(socks5_links, "socks5", "socks5_proxies.txt")
-
-    time.sleep(1)
+    # Delete old files on startup
+    if os.path.exists("scraped/http_proxies.txt"):
+        os.remove("scraped/http_proxies.txt")
+    if os.path.exists("scraped/socks5_proxies.txt"):
+        os.remove("scraped/socks5_proxies.txt")
+    
     if not os.path.exists("results"):
         os.makedirs("results")
-
+    
     open("results/http.txt", "w").close()
     open("results/socks5.txt", "w").close()
 
     valid_http = []
     valid_socks5 = []
 
-    proxy_types = ["http", "socks5"]
-    lets_check_it(proxy_types)
-
-    # Check if the file exists before attempting to remove it
-    if os.path.exists("scraped/http_proxies.txt"):
-        os.remove("scraped/http_proxies.txt")
-    if os.path.exists("scraped/socks5_proxies.txt"):
-        os.remove("scraped/socks5_proxies.txt")
+    # Ask user what they want to scrape and validate
+    print(f"{Fore.GREEN}What do you want to scrape and validate?{Fore.RESET}")
+    print(f"{Fore.WHITE}Press {Fore.GREEN}1{Fore.WHITE} for {Fore.MAGENTA}HTTP/s{Fore.RESET}")
+    print(f"{Fore.WHITE}Press {Fore.GREEN}2{Fore.WHITE} for {Fore.MAGENTA}SOCKS5{Fore.RESET}")
+    print(f"{Fore.WHITE}Press {Fore.GREEN}3{Fore.WHITE} for both {Fore.MAGENTA}HTTP/s{Fore.WHITE} and {Fore.MAGENTA}SOCKS5{Fore.RESET}")
+    
+    choice = input(f"{Fore.CYAN}Enter your choice (1, 2 or 3): {Fore.RESET}")
+    
+    http_selected = choice == '1' or choice == '3'
+    socks5_selected = choice == '2' or choice == '3'
+    
+    if http_selected:
+        proxies_http = scrape_proxies(http_links, "https", "http_proxies.txt")
+        check_http_proxies(proxies_http)
+    if socks5_selected:
+        proxies_socks5 = scrape_proxies(socks5_links, "socks5", "socks5_proxies.txt")
+        check_socks5_proxies(proxies_socks5)
 
     while True:
         time.sleep(1)
