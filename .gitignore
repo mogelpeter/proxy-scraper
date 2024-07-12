@@ -1,0 +1,6 @@
+
+scraped/socks5_proxies.txt
+scraped/http_proxies.txt
+results/socks5.txt
+results/http.txt
+/__pycache__
