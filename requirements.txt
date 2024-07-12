@@ -1,0 +1,9 @@
+requests
+colorama
+pystyle
+datetime
+aiosocks
+asyncio
+aiohttp-socks
+socks
+tls_client
