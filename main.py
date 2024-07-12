@@ -30,7 +30,18 @@ from aiohttp_socks import ProxyConnector, ProxyType
 # Load configuration
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
-allowed_threads = config.get("allowed_threads", 100)
+usage_level = config.get("usage_level", 3)
+
+# Map usage levels to thread counts
+usage_to_threads = {
+    1: 50,
+    2: 100,
+    3: 150,
+    4: 200,
+    5: 250
+}
+
+allowed_threads = usage_to_threads.get(usage_level, 100)
 
 https_scraped = 0
 socks5_scraped = 0
@@ -87,14 +98,17 @@ def ui():
     System.Clear()
     width = os.get_terminal_size().columns
     ascii_art = """
- ▄▄▄·▄▄▄        ▐▄• ▄  ▄· ▄▌    .▄▄ ·  ▄▄· ▄▄▄   ▄▄▄·  ▄▄▄·▄▄▄ .▄▄▄  
-▐█ ▄█▀▄ █·▪      █▌█▌▪▐█▪██▌    ▐█ ▀. ▐█ ▌▪▀▄ █·▐█ ▀█ ▐█ ▄█▀▄.▀·▀▄ █·
- ██▀·▐▀▀▄  ▄█▀▄  ·██· ▐█▌▐█▪    ▄▀▀▀█▄██ ▄▄▐▀▀▄ ▄█▀▀█  ██▀·▐▀▀▪▄▐▀▀▄ 
-▐█▪·•▐█•█▌▐█▌.▐▌▪▐█·█▌ ▐█▀·.    ▐█▄▪▐█▐███▌▐█•█▌▐█ ▪▐▌▐█▪·•▐█▄▄▌▐█•█▌
-.▀   .▀  ▀ ▀█▄▀▪•▀▀ ▀▀  ▀ •      ▀▀▀▀ ·▀▀▀ .▀  ▀ ▀  ▀ .▀    ▀▀▀ .▀  ▀
-                                                                                  
-\t\t[ This tool is a scraper & checker for HTTP/s and SOCKS5 proxies. ]
-\t\t\t\t\t[ The Best Ever Not Gonna Lie ]                                                                           
+8888888b.                                          .d8888b.                                                     
+888   Y88b                                        d88P  Y88b                                                    
+888    888                                        Y88b.                                                         
+888   d88P 888d888 .d88b.  888  888 888  888       "Y888b.    .d8888b 888d888 8888b.  88888b.   .d88b.  888d888 
+8888888P"  888P"  d88""88b `Y8bd8P' 888  888          "Y88b. d88P"    888P"      "88b 888 "88b d8P  Y8b 888P"   
+888        888    888  888   X88K   888  888            "888 888      888    .d888888 888  888 88888888 888     
+888        888    Y88..88P .d8""8b. Y88b 888      Y88b  d88P Y88b.    888    888  888 888 d88P Y8b.     888     
+888        888     "Y88P"  888  888  "Y88888       "Y8888P"   "Y8888P 888    "Y888888 88888P"   "Y8888  888     
+                                         888                                          888                       
+                                    Y8b d88P                                          888                       
+                                     "Y88P"                                           888                       
 """
     Write.Print(center_text(ascii_art, width), Colors.red_to_blue, interval=0.000)
     time.sleep(3)
