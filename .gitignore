@@ -4,3 +4,4 @@ scraped/http_proxies.txt
 results/socks5.txt
 results/http.txt
 /__pycache__
+config.json
