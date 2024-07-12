@@ -33,6 +33,11 @@
 Run the script using:
 
 ```bash
+start.bat
+```
+or
+
+```bash
 python main.py
 ```
 
