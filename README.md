@@ -4,7 +4,6 @@
 ## Features
 
 - **Configurable Threading**: Adjust the number of threads based on your system's capability using a `usage_level` setting from 1 to 10.
-- **Instant Termination**: Safely exit the script at any time using Ctrl+C.
 - **Scraping Proxies**: Scrape HTTP/s and SOCKS5 proxies from various sources.
 - **Checking Proxies**: Validate the scraped proxies to ensure they are working.
 - **System Monitoring**: Display CPU and RAM usage of the script in the console title.
@@ -24,25 +23,10 @@
 | 9     | 500     |
 | 10    | 550     |
 
-## Configuration
-
-Create a `config.json` file to set the `usage_level`. Example:
-
-```json
-{
-    "usage_level": 3
-}
-```
-
 ## Installation
 
 1. Clone the repository or download the .zip file.
 2. Navigate to the project directory.
-3. Install the required packages using:
-
-```bash
-pip install -r requirements.txt
-```
 
 ## Running the Script
 
@@ -55,4 +39,4 @@ python main.py
 ## Requirements
 
 - Python 3.6+
-- Packages specified in `requirements.txt`
+- Packages automatically installed on start
