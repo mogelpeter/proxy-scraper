@@ -1,35 +1,65 @@
 
 # Proxy Scraper and Checker
 
-## Features
+![Stable](https://img.shields.io/badge/status-stable-brightgreen) 
+
+![Discord](https://dcbadge.limes.pink/api/shield/741265873779818566?compact=true)
+
+## Script Description
+
+This script is designed to download and verify HTTP/s and SOCKS5 proxies from public databases and files. It offers the following key features:
 
 - **Configurable Threading**: Adjust the number of threads based on your system's capability using a `usage_level` setting from 1 to 3.
-- **Scraping Proxies**: Scrape HTTP/s and SOCKS5 proxies from various sources.
-- **Checking Proxies**: Validate the scraped proxies to ensure they are working.
-- **System Monitoring**: Display CPU and RAM usage of the script in the console title.
+- **Scraping Proxies**: Automatically scrape HTTP/s and SOCKS5 proxies from various online sources.
+- **Checking Proxies**: Validate the functionality of the scraped proxies to ensure they are operational.
+- **System Monitoring**: Display the script's CPU and RAM usage in the console title for real-time performance monitoring.
 
-## Installation
+### Usage
 
-1. Clone the repository or download the .zip file.
-2. Navigate to the project directory.
+1. **Installation**:
+   - Clone the repository or download the .zip file.
+   - Navigate to the project directory.
 
-## Running the Script
+2. **Running the Script**:
+   - Execute the script using:
+     ```bash
+     start.bat
+     ```
+     or
+     ```bash
+     python main.py
+     ```
 
-Run the script using:
+3. **Configuration**:
+   - The script uses a `config.json` file to manage settings.
+   - Adjust the `usage_level`, and specify the list of URLs for HTTP/s and SOCKS5 proxies.
 
-```bash
-start.bat
-```
-or
+4. **Educational & Research Purposes Only**:
+   - This script is intended for educational and research purposes only. Use it responsibly and in accordance with applicable laws.
 
-```bash
-python main.py
-```
-
-## Requirements
+### Requirements
 
 - Python 3.8+
-- Required packages will be automatically installed on start.
+- All necessary packages are automatically installed when the script is run.
+
+### Example `config.json`
+
+```json
+{
+    "usage_level": 2,
+    "http_links": [
+        "https://api.proxyscrape.com/?request=getproxies&proxytype=https&timeout=10000&country=all&ssl=all&anonymity=all",
+        "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
+    ],
+    "socks5_links": [
+        "https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/SOCKS5.txt",
+        "https://raw.githubusercontent.com/saschazesiger/Free-Proxies/master/proxies/socks5.txt"
+    ]
+}
+```
+
+By following this documentation, you should be able to set up, run, and understand the Proxy Scraper and Checker script with ease.
+
 
 ## Important Information!
 
@@ -127,75 +157,3 @@ Clears the console screen.
 
 Continuously updates the console title with current status.
 
-### Example `config.json`
-
-```json
-{
-    "usage_level": 2,
-    "http_links": [
-        "https://api.proxyscrape.com/?request=getproxies&proxytype=https&timeout=10000&country=all&ssl=all&anonymity=all",
-        "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
-    ],
-    "socks5_links": [
-        "https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/SOCKS5.txt",
-        "https://raw.githubusercontent.com/saschazesiger/Free-Proxies/master/proxies/socks5.txt"
-    ]
-}
-```
-
-By following this documentation, you should be able to set up, run, and understand the Proxy Scraper and Checker script with ease.
-
-## Script Description
-
-This script is designed to download and verify HTTP/s and SOCKS5 proxies from public databases and files. It offers the following key features:
-
-- **Configurable Threading**: Adjust the number of threads based on your system's capability using a `usage_level` setting from 1 to 3.
-- **Scraping Proxies**: Automatically scrape HTTP/s and SOCKS5 proxies from various online sources.
-- **Checking Proxies**: Validate the functionality of the scraped proxies to ensure they are operational.
-- **System Monitoring**: Display the script's CPU and RAM usage in the console title for real-time performance monitoring.
-
-### Usage
-
-1. **Installation**:
-   - Clone the repository or download the .zip file.
-   - Navigate to the project directory.
-
-2. **Running the Script**:
-   - Execute the script using:
-     ```bash
-     start.bat
-     ```
-     or
-     ```bash
-     python main.py
-     ```
-
-3. **Configuration**:
-   - The script uses a `config.json` file to manage settings.
-   - Adjust the `usage_level`, and specify the list of URLs for HTTP/s and SOCKS5 proxies.
-
-4. **Educational & Research Purposes Only**:
-   - This script is intended for educational and research purposes only. Use it responsibly and in accordance with applicable laws.
-
-### Requirements
-
-- Python 3.8+
-- All necessary packages are automatically installed when the script is run.
-
-### Example `config.json`
-
-```json
-{
-    "usage_level": 2,
-    "http_links": [
-        "https://api.proxyscrape.com/?request=getproxies&proxytype=https&timeout=10000&country=all&ssl=all&anonymity=all",
-        "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
-    ],
-    "socks5_links": [
-        "https://raw.githubusercontent.com/B4RC0DE-TM/proxy-list/main/SOCKS5.txt",
-        "https://raw.githubusercontent.com/saschazesiger/Free-Proxies/master/proxies/socks5.txt"
-    ]
-}
-```
-
-By following this documentation, you should be able to set up, run, and understand the Proxy Scraper and Checker script with ease.
