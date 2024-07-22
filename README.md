@@ -1,6 +1,10 @@
 
 # Proxy Scraper and Checker
 
+![Stable](https://img.shields.io/badge/status-stable-brightgreen) 
+
+![Discord](https://dcbadge.limes.pink/api/shield/741265873779818566?compact=true)
+
 ## Features
 
 - **Configurable Threading**: Adjust the number of threads based on your system's capability using a `usage_level` setting from 1 to 3.
