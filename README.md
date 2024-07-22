@@ -67,14 +67,6 @@ For educational & research purposes only!
 
 ## Detailed Documentation
 
-### Configuration
-
-The configuration file `config.json` contains settings for the script:
-
-- `usage_level`: An integer from 1 to 3 representing system usage allowance.
-- `http_links`: A list of URLs to scrape HTTP proxies from.
-- `socks5_links`: A list of URLs to scrape SOCKS5 proxies from.
-
 ### Functions
 
 #### `generate_random_folder_name(length=32)`
