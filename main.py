@@ -3,6 +3,23 @@ import sys
 import concurrent.futures
 import time
 import threading
+import subprocess
+
+# Ensure required modules are installed
+required_modules = [
+    'requests', 'colorama', 'pystyle', 'datetime', 'PySocks', 'psutil'
+]
+
+for module in required_modules:
+    try:
+        __import__(module.lower())
+    except ImportError:
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", module])
+        except subprocess.CalledProcessError:
+            print(f"Failed to install {module}. Exiting...")
+            sys.exit(1)
+
 import requests
 from requests.exceptions import RequestException, SSLError, ReadTimeout
 from pystyle import Write, System, Colors, Colorate
@@ -22,28 +39,25 @@ import shutil
 # Initialize colorama
 init()
 
-# Ensure required modules are installed
-required_modules = [
-    'requests', 'colorama', 'pystyle', 'datetime', 'socks', 'psutil'
-]
-for module in required_modules:
-    try:
-        __import__(module)
-    except ImportError:
-        os.system(f"pip install {module}")
-
-# Load configuration
+# Load configuration from config.json file
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 usage_level = config.get("usage_level", 2)  # Default to 2 (mid system usage allowance)
 http_links = config.get("http_links", [])
 socks5_links = config.get("socks5_links", [])
 
-# Create and manage random folder
 def generate_random_folder_name(length=32):
+    """
+    Generates a random folder name with the specified length.
+    Used to create unique folder names for storing results.
+    """
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 def remove_old_folders(base_folder="."):
+    """
+    Removes old folders with 32 character names in the base folder.
+    Used to clean up previously generated folders.
+    """
     for folder_name in os.listdir(base_folder):
         folder_path = os.path.join(base_folder, folder_name)
         if os.path.isdir(folder_path) and len(folder_name) == 32:
@@ -73,6 +87,7 @@ thread_levels = {
 }
 allowed_threads, ram_limit = thread_levels.get(usage_level, (1000, 1536))
 
+# Global counters and flags
 https_scraped = 0
 socks5_scraped = 0
 http_checked = 0
@@ -81,6 +96,7 @@ exit_message_printed = False
 exit_message_lock = threading.Lock()
 validation_complete = False
 
+# Color constants for console output
 red = Fore.RED
 yellow = Fore.YELLOW
 green = Fore.GREEN
@@ -96,19 +112,31 @@ pink = Fore.LIGHTGREEN_EX + Fore.LIGHTMAGENTA_EX
 dark_green = Fore.GREEN + Style.BRIGHT
 output_lock = threading.Lock()
 
-# Limit validation
+# Validation limit and loading flag
 validate_limit = 0
 loading = True
 log_enabled = True
 
 def get_time_rn():
+    """
+    Returns the current time formatted as HH:MM:SS.
+    Used for timestamping log entries.
+    """
     date = dt.now()
     return date.strftime("%H:%M:%S")
 
 def get_usage_level_str(level):
+    """
+    Converts the usage level integer to a string representation.
+    Used for displaying the current usage level in the console title.
+    """
     return {1: 'Low', 2: 'Mid', 3: 'High'}.get(level, 'Mid')
 
 def update_title(http_selected, socks5_selected, usage_level):
+    """
+    Updates the console title with current CPU, RAM usage, and validation counts.
+    Provides real-time feedback about the script's performance.
+    """
     process = psutil.Process(os.getpid())
     cpu_usage = psutil.cpu_percent()
     ram_usage = process.memory_info().rss / (1024 * 1024)  # Convert to MB
@@ -124,10 +152,18 @@ def update_title(http_selected, socks5_selected, usage_level):
         print(f'\33]0;{title}\a', end='', flush=True)
 
 def center_text(text, width):
+    """
+    Centers the text within the given width.
+    Used for displaying centered ASCII art and messages in the console.
+    """
     lines = text.split('\n')
     return '\n'.join([line.center(width) for line in lines])
 
 def ui():
+    """
+    Clears the console and displays the main UI with ASCII art.
+    Provides a user-friendly interface for the script.
+    """
     System.Clear()
     width = os.get_terminal_size().columns
     ascii_art = """
@@ -144,6 +180,10 @@ def ui():
     time.sleep(1)
 
 def scrape_proxy_links(link, proxy_type):
+    """
+    Scrapes proxies from the given link.
+    Retries up to 3 times in case of failure.
+    """
     global https_scraped, socks5_scraped
     retries = 3
     for attempt in range(retries):
@@ -174,6 +214,10 @@ def scrape_proxy_links(link, proxy_type):
     return []
 
 def check_proxy_link(link):
+    """
+    Checks if a proxy link is accessible.
+    Used for filtering out non-working proxy links before scraping.
+    """
     try:
         response = requests.get(link, timeout=10)
         if response.status_code == 200:
@@ -183,11 +227,18 @@ def check_proxy_link(link):
     return False
 
 def clean_proxy_links():
+    """
+    Cleans the proxy links by removing non-accessible ones.
+    Ensures that only valid links are used for scraping.
+    """
     global http_links, socks5_links
     http_links = [link for link in http_links if check_proxy_link(link)]
     socks5_links = [link for link in socks5_links if check_proxy_link(link)]
 
 def scrape_proxies(proxy_list, proxy_type, file_name):
+    """
+    Scrapes proxies from the provided list of links and saves them to a file.
+    """
     proxies = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
         results = executor.map(lambda link: scrape_proxy_links(link, proxy_type), proxy_list)
@@ -201,6 +252,10 @@ def scrape_proxies(proxy_list, proxy_type, file_name):
     return proxies
 
 def check_proxy_http(proxy):
+    """
+    Checks the validity of an HTTP/s proxy by making a request to httpbin.org.
+    If the proxy is valid, it is logged and saved to a file.
+    """
     global http_checked, exit_message_printed, validation_complete
     if validation_complete:
         return
@@ -235,6 +290,10 @@ def check_proxy_http(proxy):
         pass
 
 def check_proxy_socks5(proxy):
+    """
+    Checks the validity of a SOCKS5 proxy by connecting to google.com.
+    If the proxy is valid, it is logged and saved to a file.
+    """
     global socks5_checked, exit_message_printed, validation_complete
     if validation_complete:
         return
@@ -269,6 +328,9 @@ def check_proxy_socks5(proxy):
         pass
 
 def check_http_proxies(proxies):
+    """
+    Checks a list of HTTP/s proxies for validity.
+    """
     with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
         for _ in executor.map(check_proxy_http, proxies):
             if validation_complete:
@@ -276,6 +338,9 @@ def check_http_proxies(proxies):
             time.sleep(1 / 3)  # Limit to 3 validations per second
 
 def check_socks5_proxies(proxies):
+    """
+    Checks a list of SOCKS5 proxies for validity.
+    """
     with concurrent.futures.ThreadPoolExecutor(max_workers=allowed_threads) as executor:
         for _ in executor.map(check_proxy_socks5, proxies):
             if validation_complete:
@@ -283,11 +348,18 @@ def check_socks5_proxies(proxies):
             time.sleep(1 / 3)  # Limit to 3 validations per second
 
 def signal_handler(sig, frame):
+    """
+    Handles SIGINT signal (Ctrl+C) to exit gracefully.
+    Removes old folders and exits the script.
+    """
     print("\nProcess interrupted by user.")
     remove_old_folders()  # Remove old folders on exit
     sys.exit(0)
 
 def set_process_priority():
+    """
+    Sets the process priority to high for better performance.
+    """
     p = psutil.Process(os.getpid())
     try:
         p.nice(psutil.HIGH_PRIORITY_CLASS)
@@ -295,6 +367,10 @@ def set_process_priority():
         p.nice(-20)
 
 def loading_animation():
+    """
+    Displays a loading animation while verifying proxy links.
+    Provides visual feedback during the scraping and validation process.
+    """
     width = os.get_terminal_size().columns
     while loading:
         for char in '|/-\\':
@@ -304,10 +380,18 @@ def loading_animation():
             time.sleep(0.1)
 
 def clear_console():
+    """
+    Clears the console screen.
+    Used to refresh the UI after user input.
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
     ui()  # Redraw the UI
 
 def continuously_update_title():
+    """
+    Continuously updates the console title with current status.
+    Runs in a separate thread to provide real-time updates.
+    """
     while True:
         update_title(http_selected, socks5_selected, usage_level)
         time.sleep(1)
